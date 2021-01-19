@@ -117,3 +117,76 @@ describe("POST /jobs", () => {
   });
 });
 
+describe("GET /jobs", () => {
+  test("works", async () => {
+    const expected = [
+      {
+        id: expect.any(Number),
+        title: 'Job1',
+        salary: 65000,
+        equity: "0.09",
+        companyHandle: 'c1'
+      },
+      {
+        id: expect.any(Number),
+        title: 'Job2',
+        salary: 95000,
+        equity: "0.07",
+        companyHandle: 'c1'
+      },
+      {
+        id: expect.any(Number),
+        title: 'Job3',
+        salary: 125000,
+        equity: "0.05",
+        companyHandle: 'c2'
+      }
+    ];
+
+    const res = await request(app).get('/jobs');
+
+    expect(res.statusCode).toBe(200);
+
+    // Since our Job.findAll() method sorts our results in DESC order by id number, and since we don't know any of the
+    // jobs' id numbers, we can't assume they're going to be in a certain order every time.  expect.arrayContaining() to the
+    // rescue!  We just pass our job objects into that method and it will look for those objects in our response, no
+    // matter what order they're in
+    expect(res.body).toEqual({
+      jobs: expect.arrayContaining(expected)
+    });
+  });
+
+  test("fails: test next() handler", async function () {
+    // there's no normal failure event which will cause this route to fail ---
+    // thus making it hard to test that the error-handler works with it. This
+    // should cause an error, all right :)
+    await db.query("DROP TABLE jobs CASCADE");
+    const resp = await request(app).get("/jobs");
+    expect(resp.statusCode).toEqual(500);
+  });
+});
+
+/************************************** GET /jobs/:id */
+
+describe("GET /jobs/:id", () => {
+  test("works", async () => {
+    const res = await request(app).get(`/jobs/${jobId}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({
+      job: {
+        id: jobId,
+        title: 'Job1',
+        salary: 65000,
+        equity: '0.09',
+        companyHandle: 'c1' 
+      }
+    });
+  });
+
+  test("not found error for job id that doesn't exist", async () => {
+    const res = await request(app).get('/jobs/0');
+
+    expect(res.statusCode).toBe(404);
+  });
+});
