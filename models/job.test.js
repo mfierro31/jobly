@@ -129,6 +129,70 @@ describe("findAll", () => {
       }
     ]);
   });
+
+  test("works: 2 filters", async () => {
+    const query = {
+      minSalary: 150000,
+      hasEquity: 'true'
+    };
+
+    const results = await Job.findAll(query);
+
+    expect(results).toEqual([
+      {
+        id: expect.any(Number),
+        title: 'Software Engineer III',
+        salary: 150000,
+        equity: '0.03',
+        companyHandle: 'c2'
+      }
+    ]);
+  });
+
+  test("works: 1 filter", async () => {
+    const query = {
+      minSalary: 150000
+    };
+
+    const results = await Job.findAll(query);
+
+    expect(results).toEqual([
+      {
+        id: expect.any(Number),
+        title: 'Software Engineer III',
+        salary: 150000,
+        equity: '0.03',
+        companyHandle: 'c2'
+      }
+    ]);
+  });
+
+  test("bad request error if invalid filter name sent", async () => {
+    const query = {
+      maxSalary: 200000
+    }
+
+    try {
+      await Job.findAll(query);
+    } catch(err) {
+      expect(err instanceof BadRequestError).toBeTruthy();
+      expect(err.message).toEqual("'maxSalary' is not a valid filter.  Only valid filters are 'title', 'minSalary', and 'hasEquity'.");
+    }
+  });
+
+  test("bad request error if same filter name sent more than once", async () => {
+    const query = {
+      title: 'I',
+      title: 'III'
+    }
+
+    try {
+      await Job.findAll(query);
+    } catch(err) {
+      expect(err instanceof BadRequestError).toBeTruthy();
+      expect(err.message).toEqual("Can't include 'title' more than once.");
+    }
+  });
 });
 
 /************************************** get */
