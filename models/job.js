@@ -49,7 +49,7 @@ class Job {
    * Returns [{ id, title, salary, equity, companyHandle }, ...]
    * */
 
-  static async findAll(query) {
+  static async findAll(query = {}) {
     let jobsRes;
 
     if (Object.keys(query).length === 0) {

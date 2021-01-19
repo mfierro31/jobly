@@ -49,7 +49,7 @@ class Company {
    * Returns [{ handle, name, description, numEmployees, logoUrl }, ...]
    * */
 
-  static async findAll(query) {
+  static async findAll(query = {}) {
     let companiesRes;
 
     if (Object.keys(query).length === 0) {

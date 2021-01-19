@@ -76,7 +76,7 @@ describe("create", () => {
 /************************************** findAll */
 
 describe("findAll", () => {
-  test("works", async () => {
+  test("works: no filter", async () => {
     const expected = [
       {
         id: expect.any(Number),
@@ -108,6 +108,26 @@ describe("findAll", () => {
     // expect.arrayContaining which doesn't care about the order, it just looks to see if the same elements in one array are in
     // another array.
     expect(results).toEqual(expect.arrayContaining(expected));
+  });
+
+  test("works: all filters", async () => {
+    const query = {
+      title: 'software',
+      minSalary: 150000,
+      hasEquity: 'true'
+    };
+
+    const results = await Job.findAll(query);
+
+    expect(results).toEqual([
+      {
+        id: expect.any(Number),
+        title: 'Software Engineer III',
+        salary: 150000,
+        equity: '0.03',
+        companyHandle: 'c2'
+      }
+    ]);
   });
 });
 
