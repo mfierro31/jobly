@@ -266,3 +266,35 @@ describe("PATCH /jobs/:id", () => {
     expect(res.statusCode).toBe(400);
   });
 });
+
+/************************************** DELETE /jobs/:id */
+
+describe("DELETE /jobs/:id", () => {
+  test("works for admins", async () => {
+    const res = await request(app).delete(`/jobs/${jobId}`).set('authorization', `Bearer ${u4Token}`);
+
+    expect(res.statusCode).toBe(200);
+    // In our DELETE route, we take the job id from the URL parameter, which will always be a string, so we have to check for 
+    // an id in String form this time
+    expect(res.body).toEqual({ deleted: jobId.toString() });
+  });
+
+  test("unauth error for non-admins", async () => {
+    const res = await request(app).delete(`/jobs/${jobId}`).set('authorization', `Bearer ${u1Token}`);
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  test("unauth error for users not logged in", async () => {
+    const res = await request(app).delete(`/jobs/${jobId}`);
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  test("not found error for job id that doesn't exist", async () => {
+    const res = await request(app).delete(`/jobs/0`).set('authorization', `Bearer ${u4Token}`);
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error.message).toEqual("No job found with id of: 0");
+  });
+});
