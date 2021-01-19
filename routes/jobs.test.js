@@ -190,3 +190,79 @@ describe("GET /jobs/:id", () => {
     expect(res.statusCode).toBe(404);
   });
 });
+
+/************************************** PATCH /jobs/:id */
+
+describe("PATCH /jobs/:id", () => {
+  test("works for admin users", async () => {
+    const res = await request(app)
+                .patch(`/jobs/${jobId}`)
+                .send({ title: 'JobbyJobJob' })
+                .set('authorization', `Bearer ${u4Token}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({
+      job: {
+        id: jobId,
+        title: 'JobbyJobJob',
+        salary: 65000,
+        equity: '0.09',
+        companyHandle: 'c1'
+      }
+    });
+  });
+
+  test("unauth error for non-admin users", async () => {
+    const res = await request(app)
+                .patch(`/jobs/${jobId}`)
+                .send({ title: 'JobbyJobJob' })
+                .set('authorization', `Bearer ${u1Token}`);
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  test("unauth error for users not logged in", async () => {
+    const res = await request(app)
+                .patch(`/jobs/${jobId}`)
+                .send({ title: 'JobbyJobJob' });
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  test("not found error for job id that doesn't exist", async () => {
+    const res = await request(app)
+                .patch(`/jobs/0`)
+                .send({ title: 'JobbyJobJob' })
+                .set('authorization', `Bearer ${u4Token}`);
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error.message).toEqual("No job with id of: 0");
+  });
+
+  test("bad request error on id change attempt", async () => {
+    const res = await request(app)
+                .patch(`/jobs/${jobId}`)
+                .send({ id: 300 })
+                .set('authorization', `Bearer ${u4Token}`);
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  test("bad request error on companyHandle change attempt", async () => {
+    const res = await request(app)
+                .patch(`/jobs/${jobId}`)
+                .send({ companyHandle: 'c3' })
+                .set('authorization', `Bearer ${u4Token}`);
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  test("bad request error with invalid data", async () => {
+    const res = await request(app)
+                .patch(`/jobs/${jobId}`)
+                .send({ title: 300 })
+                .set('authorization', `Bearer ${u4Token}`);
+
+    expect(res.statusCode).toBe(400);
+  });
+});
