@@ -37,15 +37,83 @@ describe("POST /jobs", () => {
     companyHandle: 'c3'
   };
 
-  let returnedJob = newJob;
-  returnedJob.equity = "0.03";
+  // With the spread operator for objects, if there's a property or properties that you want to overwrite, you can do so by 
+  // setting their name to a different value AFTER spreading
+  const returnedJob = {...newJob, equity: '0.03'};
 
   test("works for admin users", async () => {
-    const res = await request(app).post('/jobs').send(newJob).set('authorization', `Bearer ${u4Token}`);
+    const res = await request(app)
+                .post('/jobs')
+                .send(newJob)
+                .set('authorization', `Bearer ${u4Token}`);
 
     expect(res.statusCode).toBe(201);
     expect(res.body).toEqual({
-      job: returnedJob
+      job: {
+        id: expect.any(Number),
+        ...returnedJob
+      }
     });
   });
+
+  test("works leaving out 'salary' and 'equity'", async () => {
+    const res = await request(app)
+                .post('/jobs')
+                .send({ title: 'Job4', companyHandle: 'c3' })
+                .set('authorization', `Bearer ${u4Token}`);
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body).toEqual({
+      job: {
+        id: expect.any(Number),
+        ...newJob,
+        salary: null,
+        equity: null
+      }
+    });
+  });
+
+  test("bad request error for missing required data", async () => {
+    const res = await request(app)
+                .post('/jobs')
+                .send({ salary: 200000, equity: 0.03 })
+                .set('authorization', `Bearer ${u4Token}`);
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  test("bad request error for no data", async () => {
+    const res = await request(app)
+                .post('/jobs')
+                .set('authorization', `Bearer ${u4Token}`);
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  test("bad request error for invalid data", async () => {
+    const res = await request(app)
+                .post('/jobs')
+                .send({ title: true, companyHandle: 3 })
+                .set('authorization', `Bearer ${u4Token}`);
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  test("unauth error for users not logged in", async () => {
+    const res = await request(app)
+                .post('/jobs')
+                .send(newJob)
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  test("unauth error for non-admin users", async () => {
+    const res = await request(app)
+                .post('/jobs')
+                .send(newJob)
+                .set('authorization', `Bearer ${u1Token}`);
+
+    expect(res.statusCode).toBe(401);
+  });
 });
+
