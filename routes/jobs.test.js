@@ -117,8 +117,10 @@ describe("POST /jobs", () => {
   });
 });
 
+/************************************** GET /jobs */
+
 describe("GET /jobs", () => {
-  test("works", async () => {
+  test("works: no filters", async () => {
     const expected = [
       {
         id: expect.any(Number),
@@ -156,6 +158,72 @@ describe("GET /jobs", () => {
     });
   });
 
+  test("works: all filters", async () => {
+    const query = {
+      title: 'job',
+      minSalary: 125000,
+      hasEquity: 'true'
+    }
+
+    const res = await request(app).get('/jobs').query(query);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({
+      jobs: [
+        {
+          id: expect.any(Number),
+          title: 'Job3',
+          salary: 125000,
+          equity: '0.05',
+          companyHandle: 'c2'
+        }
+      ]
+    });
+  });
+
+  test("works: 2 filters", async () => {
+    const query = {
+      minSalary: 125000,
+      hasEquity: 'true'
+    }
+
+    const res = await request(app).get('/jobs').query(query);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({
+      jobs: [
+        {
+          id: expect.any(Number),
+          title: 'Job3',
+          salary: 125000,
+          equity: '0.05',
+          companyHandle: 'c2'
+        }
+      ]
+    });
+  });
+
+  test("works: 1 filter", async () => {
+    const query = {
+      minSalary: 125000
+    }
+
+    const res = await request(app).get('/jobs').query(query);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({
+      jobs: [
+        {
+          id: expect.any(Number),
+          title: 'Job3',
+          salary: 125000,
+          equity: '0.05',
+          companyHandle: 'c2'
+        }
+      ]
+    });
+  });
+
   test("fails: test next() handler", async function () {
     // there's no normal failure event which will cause this route to fail ---
     // thus making it hard to test that the error-handler works with it. This
@@ -163,6 +231,21 @@ describe("GET /jobs", () => {
     await db.query("DROP TABLE jobs CASCADE");
     const resp = await request(app).get("/jobs");
     expect(resp.statusCode).toEqual(500);
+  });
+
+  test("Receive a 400 error if we send a filter that doesn't exist", async () => {
+    const resp = await request(app).get('/jobs').query({ color: 'purple' });
+    expect(resp.statusCode).toBe(400);
+    expect(resp.body.error.message).toEqual("'color' is not a valid filter.  Only valid filters are 'title', 'minSalary', and 'hasEquity'.");
+  });
+
+  test("Receive a 400 error if we send the same filter twice", async () => {
+    // default object behavior in JavaScript will overwrite a property if it's previously already been defined, so if we send
+    // our query as an object in this case, like { title: 'I', title: 'II' }, the object will just be converted to { title: 'II' }
+    // so we have to put title twice directly in the URL for this test to work
+    const resp = await request(app).get('/jobs?title=I&title=II');
+    expect(resp.statusCode).toBe(400);
+    expect(resp.body.error.message).toEqual("Can't include 'title' more than once.");
   });
 });
 
