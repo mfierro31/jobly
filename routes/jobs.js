@@ -42,6 +42,10 @@ router.post("/", ensureIsAdmin, async (req, res, next) => {
 
 /** GET /  =>
  *   { jobs: [ { id, title, salary, equity, companyHandle }, ...] }
+ * 
+ * Can also pass filters in - 'title' - a String, 'minSalary' - a Number, and 'hasEquity' - true or false as a String
+ * 
+ * Sorts by most recent job added.
  *
  * Authorization required: none
  * 
@@ -49,7 +53,7 @@ router.post("/", ensureIsAdmin, async (req, res, next) => {
 
 router.get("/", async function (req, res, next) {
   try {
-    const jobs = await Job.findAll();
+    const jobs = await Job.findAll(req.query);
     return res.json({ jobs });
   } catch (err) {
     return next(err);

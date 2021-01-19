@@ -44,124 +44,107 @@ class Job {
     return job;
   }
 
-  /** Find all jobs.
+  /** Find all jobs.  Also handles filters: title, minSalary, and hasEquity
    *
    * Returns [{ id, title, salary, equity, companyHandle }, ...]
    * */
 
-  static async findAll() {
-    const jobs = await db.query(
-      `SELECT id,
-              title,
-              salary,
-              equity,
-              company_handle AS "companyHandle"
-       FROM jobs
-       ORDER BY id DESC`);
-    
-    return jobs.rows;
+  static async findAll(query) {
+    let jobsRes;
 
-  //   let companiesRes;
-
-  //   if (Object.keys(query).length === 0) {
-  //     // if there are no query strings, simply return all companies
-  //     companiesRes = await db.query(
-  //       `SELECT handle,
-  //               name,
-  //               description,
-  //               num_employees AS "numEmployees",
-  //               logo_url AS "logoUrl"
-  //        FROM companies
-  //        ORDER BY name`);
+    if (Object.keys(query).length === 0) {
+      // if there are no query strings, simply return all companies
+      jobsRes = await db.query(
+        `SELECT id,
+                title,
+                salary,
+                equity,
+                company_handle AS "companyHandle"
+         FROM jobs
+         ORDER BY id DESC`);
       
-  //     return companiesRes.rows;
-  //   } else {
-  //     // if there is at least 1 query string, then add those filters
+      return jobsRes.rows;
+    } else {
+      // if there is at least 1 query string, then add those filters
 
-  //     // first, we filter out any filters that shouldn't exist
-  //     for (let property in query) {
-  //       const validFilters = ['name', 'minEmployees', 'maxEmployees'];
+      // first, we filter out any filters that shouldn't exist
+      for (let property in query) {
+        const validFilters = ['title', 'minSalary', 'hasEquity'];
 
-  //       // if any of the filter names in the query object are not one of the above validFilters, then throw an error
-  //       if (!validFilters.includes(property)) {
-  //         throw new BadRequestError(`'${property}' is not a valid filter.  Only valid filters are 'name', 'minEmployees', and 'maxEmployees'.`);
-  //       }
+        // if any of the filter names in the query object are not one of the above validFilters, then throw an error
+        if (!validFilters.includes(property)) {
+          throw new BadRequestError(`'${property}' is not a valid filter.  Only valid filters are 'title', 'minSalary', and 'hasEquity'.`);
+        }
 
-  //       // Also, if the same filter name is included more than once, that causes problems too.  When that does happen, its value
-  //       // becomes an array.  So here, we check to see if any of the properties' value is an array.  If so, throw error.
-  //       if (Array.isArray(query[property])) {
-  //         throw new BadRequestError(`Can't include '${property}' more than once.`);
-  //       }
-  //     }
-  //     // we start with an empty whereClause and values array
-  //     // as we check to see if each of the 3 filters exist, we add on to the whereClause and the values array
-  //     let whereClause = "";
-  //     let values = [];
-  //     let name;
-  //     let minEmployees;
-  //     let maxEmployees;
+        // Also, if the same filter name is included more than once, that causes problems too.  When that does happen, its value
+        // becomes an array.  So here, we check to see if any of the properties' value is an array.  If so, throw error.
+        if (Array.isArray(query[property])) {
+          throw new BadRequestError(`Can't include '${property}' more than once.`);
+        }
+      }
+      // we start with an empty whereClause and values array
+      // as we check to see if each of the 3 filters exist, we add on to the whereClause and the values array
+      let whereClause = "";
+      let values = [];
+      let title;
+      let minSalary;
 
-  //     if (query.name && typeof query.name === 'string') {
-  //       name = query.name;
-  //       // "name ILIKE '%$1%'" didn't work, so we had to put the %%'s inside the parameterized query value itself
-  //       const nameWithPercents = `%${name}%`;
-  //       values.push(nameWithPercents);
-  //       // Since we're checking for name first, if it exists, it will always be the first element in the values array,
-  //       // therefore we can hard-code it as $1
-  //       whereClause = "name ILIKE $1";
-  //     }
+      if (query.title && typeof query.title === 'string') {
+        title = query.title;
+        // "name ILIKE '%$1%'" didn't work, so we had to put the %%'s inside the parameterized query value itself
+        const titleWithPercents = `%${title}%`;
+        values.push(titleWithPercents);
+        // Since we're checking for name first, if it exists, it will always be the first element in the values array,
+        // therefore we can hard-code it as $1
+        whereClause = "title ILIKE $1";
+      }
 
-  //     if (query.minEmployees && !isNaN(query.minEmployees)) {
-  //       minEmployees = parseInt(query.minEmployees);
-  //       values.push(minEmployees);
-  //       const minEmployeesIdx = values.indexOf(minEmployees) + 1;
-  //       // if minEmployees is the first element in the values array, then its parameterized query is $1, if not, it'll be
-  //       // whatever its index in values is + 1
-  //       whereClause += (minEmployeesIdx === 1) ? "num_employees >= $1" : ` AND num_employees >= $${minEmployeesIdx}`;
-  //     }
+      if (query.minSalary && !isNaN(query.minSalary)) {
+        minSalary = parseInt(query.minSalary);
+        values.push(minSalary);
+        const minSalaryIdx = values.indexOf(minSalary) + 1;
+        // if minSalary is the first element in the values array, then its parameterized query is $1, if not, it'll be
+        // whatever its index in values is + 1
+        whereClause += (minSalaryIdx === 1) ? "salary >= $1" : ` AND salary >= $${minSalaryIdx}`;
+      }
 
-  //     if (query.maxEmployees && !isNaN(query.maxEmployees)) {
-  //       maxEmployees = parseInt(query.maxEmployees);
-  //       values.push(maxEmployees);
-  //       // we get an error if minEmployees and maxEmployees are the same number, because using .indexOf(), that will only find
-  //       // the index of the first instance of that number in the array, so minEmployees and maxEmployees parameterized queries
-  //       // will be the same.  This line below fixes that.
-  //       const maxEmployeesIdx = (minEmployees && minEmployees === maxEmployees) ? values.indexOf(maxEmployees) + 2 : values.indexOf(maxEmployees) + 1;
-  //       whereClause += (maxEmployeesIdx === 1) ? "num_employees <= $1" : ` AND num_employees <= $${maxEmployeesIdx}`;
-  //     }
-
-  //     if (minEmployees && maxEmployees && minEmployees > maxEmployees) {
-  //       throw new BadRequestError("'minEmployees' cannot be greater than 'maxEmployees'");
-  //     }
+      if (query.hasEquity && typeof query.hasEquity === 'string' && query.hasEquity.toLowerCase() === "true") {
+        values.push(0);
+        // we get an error if minSalary is 0, because that's what we're pushing into values for hasEquity.  Using .indexOf(), that will only find
+        // the index of the first instance of 0 in the array, so minSalary and hasEquity's parameterized queries
+        // will be the same.  This line below fixes that.
+        const hasEquityIdx = (minSalary === 0) ? values.indexOf(0) + 2 : values.indexOf(0) + 1;
+        whereClause += (hasEquityIdx === 1) ? "equity > $1" : ` AND equity > $${hasEquityIdx}`;
+      }
       
-  //     // and finally, it is possible that the filter names could exist in query, but that their values could be falsy or just
-  //     // not exist, so we have to check for that too and just return all companies if that's the case
-  //     if (!name && !minEmployees && !maxEmployees) {
-  //       companiesRes = await db.query(
-  //         `SELECT handle,
-  //                 name,
-  //                 description,
-  //                 num_employees AS "numEmployees",
-  //                 logo_url AS "logoUrl"
-  //          FROM companies
-  //          ORDER BY name`);
+      // It is possible that the filter names could exist in query, but that their values could be falsy or just
+      // not exist, so we have to check for that too and just return all jobs if that's the case
+      if (!title && !minSalary && minSalary !== 0 && !hasEquity) {
+        jobsRes = await db.query(
+          `SELECT id,
+                  title,
+                  salary,
+                  equity,
+                  company_handle AS "companyHandle"
+           FROM jobs
+           ORDER BY id DESC`);
         
-  //       return companiesRes.rows;
-  //     }
+        return jobsRes.rows;
+      }
 
-  //     // otherwise, we plug in the final whereClause and the accompanying values array to our sql query
-  //     companiesRes = await db.query(
-  //       `SELECT handle,
-  //               name,
-  //               description,
-  //               num_employees AS "numEmployees",
-  //               logo_url AS "logoUrl"
-  //        FROM companies
-  //        WHERE ${whereClause}
-  //        ORDER BY name`, values);
+      // otherwise, we plug in the final whereClause and the accompanying values array to our sql query
+      jobsRes = await db.query(
+        `SELECT id,
+                title,
+                salary,
+                equity,
+                company_handle AS "companyHandle"
+         FROM jobs
+         WHERE ${whereClause}
+         ORDER BY id DESC`, values);
 
-  //     return companiesRes.rows;
-  //   }
+      return jobsRes.rows;
+    }
   }
 
   /** Given a job id, return data about job.
