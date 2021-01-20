@@ -101,7 +101,7 @@ class User {
   static async apply(username, jobId) {
     // First, check to see if these 2 primary keys are valid
     let jobIdNum;
-    
+
     if (isNaN(jobId)) {
       throw new BadRequestError("job 'id' param has to be a Number");
     } else {
@@ -125,19 +125,27 @@ class User {
 
   /** Find all users.
    *
-   * Returns [{ username, first_name, last_name, email, is_admin }, ...]
+   * Returns [{ username, first_name, last_name, email, is_admin, jobs }, ...]
+   *    where jobs is [ id, id, id, ...]
    **/
 
   static async findAll() {
+    // To include all job ids, but still getting all users, even if they haven't applied for any jobs, we have to do a
+    // LEFT JOIN on applications, so that all users are included.  
+
+    // also important to note the position of GROUP BY in this query.  GROUP BY has to come right after the WHERE or FROM clause
+    // or before an ORDER BY clause, else it gives an error
     const result = await db.query(
-          `SELECT username,
+          `SELECT u.username,
                   first_name AS "firstName",
                   last_name AS "lastName",
                   email,
-                  is_admin AS "isAdmin"
-           FROM users
-           ORDER BY username`,
-    );
+                  is_admin AS "isAdmin",
+                  array_agg(job_id) AS "jobs"
+           FROM users AS u
+              LEFT JOIN applications AS a ON u.username = a.username
+           GROUP BY u.username
+           ORDER BY u.username`);
 
     return result.rows;
   }
@@ -145,20 +153,25 @@ class User {
   /** Given a username, return data about user.
    *
    * Returns { username, first_name, last_name, is_admin, jobs }
-   *   where jobs is { id, title, company_handle, company_name, state }
+   *   where jobs is [ id, id, id, ... ]
    *
    * Throws NotFoundError if user not found.
    **/
 
   static async get(username) {
+    // Even though we're only getting 1 user back in this situation, we still have to use LEFT JOIN in our query, because if we
+    // don't, if our user hasn't applied to any jobs, we won't get back anything from the database.  
     const userRes = await db.query(
-          `SELECT username,
+          `SELECT u.username,
                   first_name AS "firstName",
                   last_name AS "lastName",
                   email,
-                  is_admin AS "isAdmin"
-           FROM users
-           WHERE username = $1`,
+                  is_admin AS "isAdmin",
+                  array_agg(job_id) AS "jobs"
+           FROM users AS u
+              LEFT JOIN applications AS a ON u.username = a.username
+           WHERE u.username = $1
+           GROUP BY u.username`,
         [username],
     );
 

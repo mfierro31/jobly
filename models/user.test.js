@@ -105,6 +105,12 @@ describe("register", function () {
   });
 });
 
+/************************************** apply */
+
+describe("apply", () => {
+  
+});
+
 /************************************** findAll */
 
 describe("findAll", function () {
@@ -117,6 +123,7 @@ describe("findAll", function () {
         lastName: "U1L",
         email: "u1@email.com",
         isAdmin: false,
+        jobs: [expect.any(Number), expect.any(Number), expect.any(Number)]
       },
       {
         username: "u2",
@@ -124,7 +131,8 @@ describe("findAll", function () {
         lastName: "U2L",
         email: "u2@email.com",
         isAdmin: false,
-      },
+        jobs: [null]
+      }
     ]);
   });
 });
@@ -140,6 +148,7 @@ describe("get", function () {
       lastName: "U1L",
       email: "u1@email.com",
       isAdmin: false,
+      jobs: [expect.any(Number), expect.any(Number), expect.any(Number)]
     });
   });
 

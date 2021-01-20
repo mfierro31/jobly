@@ -47,8 +47,9 @@ router.post("/", ensureIsAdmin, async function (req, res, next) {
 });
 
 
-/** GET / => { users: [ {username, firstName, lastName, email }, ... ] }
- *
+/** GET / => { users: [ {username, firstName, lastName, email, jobs }, ... ] }
+ *              where jobs is [ id, id, id, ...]
+ * 
  * Returns list of all users.
  *
  * Authorization required: login as admin
@@ -69,8 +70,9 @@ router.get("/", ensureIsAdmin, async function (req, res, next) {
 
 /** GET /[username] => { user }
  *
- * Returns { username, firstName, lastName, isAdmin }
- *
+ * Returns { username, firstName, lastName, isAdmin, jobs }
+ *      where jobs is [ id, id, id, ...]
+ * 
  * Authorization required: login as user being viewed or as admin
  * 
  * Send your token in request header as 'authorization: Bearer <token>' with Insomnia or in JS chaining the .set method
