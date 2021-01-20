@@ -96,6 +96,33 @@ class User {
     return user;
   }
 
+  /** Given a username and a job id, apply to a job. */
+
+  static async apply(username, jobId) {
+    // First, check to see if these 2 primary keys are valid
+    let jobIdNum;
+    
+    if (isNaN(jobId)) {
+      throw new BadRequestError("job 'id' param has to be a Number");
+    } else {
+      jobIdNum = parseInt(jobId);
+    }
+
+    const usrCheck = await db.query(`SELECT username FROM users WHERE username = $1`, [username]);
+    const jobCheck = await db.query(`SELECT id FROM jobs WHERE id = $1`, [jobIdNum]);
+
+    if (usrCheck.rows.length === 0) {
+      throw new BadRequestError(`No user with username of: ${username}`);
+    }
+
+    if (jobCheck.rows.length === 0) {
+      throw new BadRequestError(`No job with id of: ${jobIdNum}`);
+    }
+
+    await db.query(`INSERT INTO applications (username, job_id)
+                    VALUES ($1, $2)`, [username, jobIdNum]);
+  }
+
   /** Find all users.
    *
    * Returns [{ username, first_name, last_name, email, is_admin }, ...]

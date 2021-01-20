@@ -118,7 +118,7 @@ router.patch("/:username", ensureIsAuthorized, async function (req, res, next) {
 
 /** DELETE /[username]  =>  { deleted: username }
  *
- * Authorization required: login as user beind deleted or as admin
+ * Authorization required: login as user being deleted or as admin
  * 
  * Send your token in request header as 'authorization: Bearer <token>' with Insomnia or in JS chaining the .set method
  * to your request code like so - .set("authorization", `Bearer ${token}`)
@@ -133,5 +133,27 @@ router.delete("/:username", ensureIsAuthorized, async function (req, res, next) 
   }
 });
 
+/** POST /users/:username/jobs/:id  =>  { applied: jobId } 
+ * 
+ * Authorization required: login as user applying or as admin
+ * 
+ * Send your token in request header as 'authorization: Bearer <token>' with Insomnia or in JS chaining the .set method
+ * to your request code like so - .set("authorization", `Bearer ${token}`)
+*/
+
+router.post("/:username/jobs/:id", ensureIsAuthorized, async (req, res, next) => {
+  try {
+    await User.apply(req.params.username, req.params.id);
+    return res.json({ applied: parseInt(req.params.id) });
+  } catch(err) {
+    // if a user tries to apply to the same job twice, postgres will throw a unique constraint error with a code of '23505'
+    // we can use that code to send our users a more user-friendly error message
+    if (err.code === '23505') {
+      return next(new BadRequestError("Can't apply to the same job twice"));
+    }
+
+    return next(err);
+  }
+});
 
 module.exports = router;
