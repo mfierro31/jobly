@@ -202,6 +202,21 @@ describe("GET /companies", function () {
 
 describe("GET /companies/:handle", function () {
   test("works for anon", async function () {
+    const expectedJobs = [
+      {
+        id: expect.any(Number),
+        title: 'Job1',
+        salary: 65000,
+        equity: '0.09'
+      },
+      {
+        id: expect.any(Number),
+        title: 'Job2',
+        salary: 95000,
+        equity: '0.07'
+      }
+    ];
+
     const resp = await request(app).get(`/companies/c1`);
     expect(resp.body).toEqual({
       company: {
@@ -210,20 +225,22 @@ describe("GET /companies/:handle", function () {
         description: "Desc1",
         numEmployees: 1,
         logoUrl: "http://c1.img",
-      },
+        jobs: expect.arrayContaining(expectedJobs)
+      }
     });
   });
 
   test("works for anon: company w/o jobs", async function () {
-    const resp = await request(app).get(`/companies/c2`);
+    const resp = await request(app).get(`/companies/c3`);
     expect(resp.body).toEqual({
       company: {
-        handle: "c2",
-        name: "C2",
-        description: "Desc2",
-        numEmployees: 2,
-        logoUrl: "http://c2.img",
-      },
+        handle: "c3",
+        name: "C3",
+        description: "Desc3",
+        numEmployees: 3,
+        logoUrl: "http://c3.img",
+        jobs: []
+      }
     });
   });
 

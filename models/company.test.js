@@ -177,13 +177,30 @@ describe("findAll", function () {
 
 describe("get", function () {
   test("works", async function () {
+    const expectedJobs = [
+      {
+        id: expect.any(Number),
+        title: 'Software Engineer I',
+        salary: 70000,
+        equity: '0.09'
+      },
+      {
+        id: expect.any(Number),
+        title: 'Software Engineer II',
+        salary: 100000,
+        equity: '0.05'
+      }
+    ];
+
     let company = await Company.get("c1");
+
     expect(company).toEqual({
       handle: "c1",
       name: "C1",
       description: "Desc1",
       numEmployees: 1,
       logoUrl: "http://c1.img",
+      jobs: expect.arrayContaining(expectedJobs)
     });
   });
 
