@@ -108,7 +108,50 @@ describe("register", function () {
 /************************************** apply */
 
 describe("apply", () => {
-  
+  let jobIdRes;
+  let jobId;
+
+  test("works", async () => {
+    jobIdRes = await db.query("SELECT id FROM jobs WHERE salary = 70000");
+    jobId = jobIdRes.rows[0].id;
+
+    await User.apply('u2', jobId);
+
+    const res = await db.query(`SELECT username, job_id FROM applications
+                                WHERE username = 'u2' AND job_id = ${jobId}`);
+
+    expect(res.rows[0]).toEqual({
+      username: 'u2',
+      job_id: jobId
+    });
+  });
+
+  test("bad request error if jobId doesn't convert to a number", async () => {
+    try {
+      await User.apply('u2', 'true');
+    } catch(err) {
+      expect(err instanceof BadRequestError).toBeTruthy();
+      expect(err.message).toEqual("job 'id' param has to be a Number");
+    }
+  });
+
+  test("bad request error if invalid username", async () => {
+    try {
+      await User.apply('u10', jobId);
+    } catch(err) {
+      expect(err instanceof BadRequestError).toBeTruthy();
+      expect(err.message).toEqual("No user with username of: u10");
+    }
+  });
+
+  test("bad request error if invalid jobId", async () => {
+    try {
+      await User.apply('u2', 0);
+    } catch(err) {
+      expect(err instanceof BadRequestError).toBeTruthy();
+      expect(err.message).toEqual("No job with id of: 0");
+    }
+  });
 });
 
 /************************************** findAll */
