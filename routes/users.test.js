@@ -119,10 +119,64 @@ describe("POST /users", function () {
           lastName: "Last-newL",
           password: "password-new",
           email: "not-an-email",
-          isAdmin: true,
+          isAdmin: true
         })
         .set("authorization", `Bearer ${u4Token}`);
     expect(resp.statusCode).toEqual(400);
+  });
+});
+
+/************************************** POST /users/:username/jobs/:id */
+
+describe("POST /users/:username/jobs/:id", () => {
+  let jobIdRes;
+  let jobId;
+
+  test("works for admins", async () => {
+    jobIdRes = await db.query("SELECT id FROM jobs WHERE title = 'Job1'");
+    jobId = jobIdRes.rows[0].id;
+
+    const res = await request(app).post(`/users/u1/jobs/${jobId}`).set('authorization', `Bearer ${u4Token}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ applied: jobId });
+  });
+
+  test("works for same user", async () => {
+    const res = await request(app).post(`/users/u1/jobs/${jobId}`).set('authorization', `Bearer ${u1Token}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ applied: jobId });
+  });
+
+  test("unauth for different, non-admin user", async () => {
+    const res = await request(app).post(`/users/u2/jobs/${jobId}`).set('authorization', `Bearer ${u1Token}`);
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  test("unauth for user not logged in", async () => {
+    const res = await request(app).post(`/users/u2/jobs/${jobId}`);
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  test("bad request error if job id doesn't convert to a number", async () => {
+    const res = await request(app).post(`/users/u1/jobs/true`).set('authorization', `Bearer ${u4Token}`);
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  test("bad request error if invalid username", async () => {
+    const res = await request(app).post(`/users/u10/jobs/${jobId}`).set('authorization', `Bearer ${u4Token}`);
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  test("bad request error if job id doesn't exist", async () => {
+    const res = await request(app).post(`/users/u1/jobs/0`).set('authorization', `Bearer ${u4Token}`);
+
+    expect(res.statusCode).toBe(400);
   });
 });
 
@@ -141,6 +195,7 @@ describe("GET /users", function () {
           lastName: "U1L",
           email: "user1@user.com",
           isAdmin: false,
+          jobs: [expect.any(Number)]
         },
         {
           username: "u2",
@@ -148,6 +203,7 @@ describe("GET /users", function () {
           lastName: "U2L",
           email: "user2@user.com",
           isAdmin: false,
+          jobs: [null]
         },
         {
           username: "u3",
@@ -155,13 +211,15 @@ describe("GET /users", function () {
           lastName: "U3L",
           email: "user3@user.com",
           isAdmin: false,
+          jobs: [null]
         },
         {
           username: "u4",
           firstName: "U4F",
           lastName: "U4L",
           email: "user4@user.com",
-          isAdmin: true
+          isAdmin: true,
+          jobs: [null]
         }
       ],
     });
@@ -206,6 +264,7 @@ describe("GET /users/:username", function () {
         lastName: "U1L",
         email: "user1@user.com",
         isAdmin: false,
+        jobs: [expect.any(Number)]
       }
     });
   });
@@ -221,6 +280,7 @@ describe("GET /users/:username", function () {
         lastName: "U1L",
         email: "user1@user.com",
         isAdmin: false,
+        jobs: [expect.any(Number)]
       }
     });
   });
@@ -262,7 +322,7 @@ describe("PATCH /users/:username", () => {
         firstName: "New",
         lastName: "U1L",
         email: "user1@user.com",
-        isAdmin: false,
+        isAdmin: false
       }
     });
   });
@@ -280,7 +340,7 @@ describe("PATCH /users/:username", () => {
         firstName: "New",
         lastName: "U1L",
         email: "user1@user.com",
-        isAdmin: false,
+        isAdmin: false
       }
     });
   });
@@ -337,7 +397,7 @@ describe("PATCH /users/:username", () => {
         firstName: "U1F",
         lastName: "U1L",
         email: "user1@user.com",
-        isAdmin: false,
+        isAdmin: false
       },
     });
     const isSuccessful = await User.authenticate("u1", "new-password");
